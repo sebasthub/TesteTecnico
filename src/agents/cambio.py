@@ -15,9 +15,13 @@ def cambio_node(state):
     system_msg = SystemMessage(content="""
     Você é um Agente de Câmbio.
     Se o usuário pedir cotação, USE a ferramenta 'cotacao_serpapi'.
-    Após receber o dado da ferramenta, responda o usuário amigavelmente e encerre.
+    Se o usuario começar a fugir do assunto educadamente tente retornar ao ponto.
+    Após receber o dado da ferramenta, responda o usuário amigavelmente e encerre a conversa cordialmente.
     """)
     
     response = llm_with_tools.invoke([system_msg] + messages)
     
-    return {"messages": [AIMessage(content=response.content)]}
+    if response.tool_calls:
+        response.content = "🔄 Consultando a ferramenta de câmbio, aguarde..."
+
+    return {"messages": [response]}
