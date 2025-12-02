@@ -1,9 +1,9 @@
 from typing import Optional
 from langchain_core.messages import AIMessage, SystemMessage
-from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
 from src.graph.state import AgentState
+from src.graph.llm import llm
 from src.tools.csv_handler import (
     buscar_dados_cliente, 
     verificar_elegibilidade_aumento, 
@@ -28,8 +28,6 @@ def credit_node(state: AgentState):
     
     current_limit = float(client_data['limite_atual']) if client_data else 0.0
     current_score = int(client_data['score']) if client_data else 0
-    
-    llm = ChatOpenAI(model="gpt-4o", temperature=0)
     
     structured_llm = llm.with_structured_output(UserRequest)
     extraction_prompt = SystemMessage(content="""

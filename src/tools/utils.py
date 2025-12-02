@@ -124,3 +124,18 @@ def get_llm_response(tentativas_restantes, status_auth, feedback_sistema, last_m
         HumanMessage(content=last_message.content)
     ])
     return response
+
+
+def end_conversation(messages):
+    system_prompt = f"""
+    # IDENTIDADE
+    Você é um agente de finalização de conversa.
+    Sempre responda de maneira polida e humana.
+    Se o usuario se despedir (tchau, obrigado, sair) ou disser explicitamente que não precisa de mais nada, encerre a conversa cordialmente.
+    mensagens anteriores: {messages}
+    """
+    response = llm.invoke([
+        SystemMessage(content=system_prompt),
+        HumanMessage(content=messages[-1].content)
+    ])
+    return response

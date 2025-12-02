@@ -5,7 +5,8 @@ from src.tools.utils import (
     extract_cpfs,
     extract_date,
     extract_intent,
-    get_llm_response
+    get_llm_response,
+    end_conversation
 )
 
 #quem comentou fui eu não a AI (colega de trabalho achou que fosse)
@@ -19,7 +20,7 @@ def triagem_node(state: AgentState):
     intent = state.get("user_intent", "nenhum")
 
     #verificando as inteções já que o usuario pode dar sua intenção na mensagem de oi
-    if intent != "finalizado":
+    if intent != "end":
         intent = extract_intent(messages)
     
 
@@ -80,8 +81,13 @@ def triagem_node(state: AgentState):
     
     #logica de roteamento
     #não usei else aqui porque não precisa, já cai aqui se o teste acima falha
-    if intent == "finalizado":
+    if intent == "end":
         return {"user_intent": intent}
+    if intent == "finalizado":
+        response = end_conversation(messages)
+        intent = "end"
+        return {"messages": [AIMessage(content=response.content)],
+                "user_intent": intent}
     system_feedback = f"Cliente já autenticado como: {state['nome']}"
     intent = extract_intent(messages)
     if intent != "nenhum":

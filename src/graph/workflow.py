@@ -21,8 +21,10 @@ graph_builder.add_edge(START, "triagem")
 
 def router(state):
     intent = state.get("user_intent")
-    if intent == "finalizado": 
+    if intent == "end": 
         return END
+    if intent == "finalizado":
+        return "triagem"
     if intent == "cambio": 
         return "cambio"
     if intent == "credito":
