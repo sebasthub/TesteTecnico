@@ -120,8 +120,6 @@ def get_llm_response(tentativas_restantes, status_auth, feedback_sistema, last_m
     {messages}
     """
 
-    # 3. Invocação da LLM
-    # Removemos o "placeholder" e usamos apenas System e User
     response = llm.invoke([
         SystemMessage(content=system_prompt),
         HumanMessage(content=last_message.content)
@@ -136,7 +134,7 @@ def triagem_node(state: AgentState):
     status_auth = "AUTENTICADO" if state.get('authenticated') else "NÃO AUTENTICADO"
     feedback_sistema = "" 
     
-    if not state.get('authenticated'):
+    if not state.get('authenticated') and tentativas_restantes > 0:
         # pegar cpf
         cpf = state.get('cpf')
         if not cpf:
@@ -145,7 +143,7 @@ def triagem_node(state: AgentState):
                 feedback_sistema = "CPF Extraído com sucesso"
                 response = get_llm_response(tentativas_restantes, status_auth, feedback_sistema, last_message, messages)
                 return {"cpf": cpf, "messages": [AIMessage(content=response.content)]}
-            feedback_sistema = "CPF Não Encontrado"
+            feedback_sistema = "CPF Não Encontrado na mensagem anterior"
             response = get_llm_response(tentativas_restantes, status_auth, feedback_sistema, last_message, messages)
             return {"messages": [AIMessage(content=response.content)]}
 
@@ -153,13 +151,10 @@ def triagem_node(state: AgentState):
         data_nascimento = state.get('data_nascimento')
         if not data_nascimento:
             data_nascimento = extract_date(last_message.content)
-            if data_nascimento:
-                feedback_sistema = f"Data de Nascimento Extraída com sucesso, perguntar se dados estão corretos {cpf}, {data_nascimento}" 
+            if not data_nascimento:
+                feedback_sistema = "Data de Nascimento Não Informada, pedir de novo somente a data de nascimento"
                 response = get_llm_response(tentativas_restantes, status_auth, feedback_sistema, last_message, messages)
-                return {"data_nascimento": data_nascimento, "messages": [AIMessage(content=response.content)]}
-            feedback_sistema = "Data de Nascimento Não Encontrada"
-            response = get_llm_response(tentativas_restantes, status_auth, feedback_sistema, last_message, messages)
-            return {"messages": [AIMessage(content=response.content)]}
+                return {"messages": [AIMessage(content=response.content)]}
         
         # validação com o csv
         if cpf and data_nascimento:
@@ -169,29 +164,34 @@ def triagem_node(state: AgentState):
                 response = get_llm_response(tentativas_restantes, status_auth, feedback_sistema, last_message, messages)
                 return {"messages": [AIMessage(content=response.content)],
                         "authenticated": True,
-                        "nome": user['nome']}
+                        "nome": user['nome'],
+                        "data_nascimento": data_nascimento
+                        }
             state['auth_attempts'] = state.get('auth_attempts', 0) + 1
+            tentativas_restantes -= 1
             if state['auth_attempts'] >= 3:
-                feedback_sistema = f"Falha de autenticação final, finalize educadamente"
+                feedback_sistema = f"Falha de autenticação final, finalize educadamente não havera respostas depois dessa etapa logo voce não pode ajudar mais"
                 response = get_llm_response(tentativas_restantes, status_auth, feedback_sistema, last_message, messages)
                 return {"messages": [AIMessage(content=response.content)],
                         "user_intent": "finalizado",
-                        "auth_attempts": 0,
                         "authenticated": False,
+                        "auth_attempts": 3,
                         "cpf": None,
                         "data_nascimento": None
                         }
-            feedback_sistema = f"Falha de autenticação"
+            feedback_sistema = f"Falha de autenticação, se for a terceira só comente que é a ultima tentativa"
             response = get_llm_response(tentativas_restantes, status_auth, feedback_sistema, last_message, messages)
             return {"messages": [AIMessage(content=response.content)],
                     "auth_attempts": state.get('auth_attempts', 0),
                     "cpf": None,
                     "data_nascimento": None}
+        
     else:
+        intent = state.get("user_intent", "nenhum")
+        if intent == "finalizado":
+            return {"user_intent": intent}
         feedback_sistema = f"Cliente já autenticado como: {state['nome']}"
         intent = extract_intent(messages)
-        if intent == "finalizado":
-            feedback_sistema = "cliente finalizou o atendimento"
         if intent != "nenhum":
             return {"user_intent": intent}
         response = get_llm_response(tentativas_restantes, status_auth, feedback_sistema, last_message, messages)
