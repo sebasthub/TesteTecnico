@@ -1,3 +1,4 @@
 cpf_cliente,data_hora_solicitacao,limite_atual,novo_limite_solicitado,status_pedido
 11122233344,2023-10-01T10:00:00,5000.00,6000.00,aprovado
 12345678900,2023-10-02T14:30:00,1000.00,5000.00,rejeitado
+69542462042,2025-12-01T21:01:20.468774,1000.0,2000.0,rejeitado
