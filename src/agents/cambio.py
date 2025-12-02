@@ -1,15 +1,16 @@
-import os
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, AIMessage
+from langchain_core.messages import SystemMessage
 from src.tools.api_client import cotacao_serpapi
+from src.graph.state import AgentState
+from src.graph.llm import llm
 
 
 tools_cambio = [cotacao_serpapi]
 
-def cambio_node(state):
+
+def cambio_node(state: AgentState):
     messages = state['messages']
     
-    llm = ChatOpenAI(model="gpt-4o", temperature=0)
     llm_with_tools = llm.bind_tools(tools_cambio)
     
     system_msg = SystemMessage(content="""
