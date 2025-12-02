@@ -3,6 +3,8 @@ import os
 import shutil
 from datetime import datetime
 from tempfile import NamedTemporaryFile
+from langchain.tools import tool
+
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
@@ -16,15 +18,11 @@ def _garantir_diretorio():
     if not os.path.exists(DATA_DIR):
         os.makedirs(DATA_DIR)
 
+
 def validar_cliente(cpf_input: str, data_nascimento_input: str) -> dict | None:
-    """
-    Autentica o cliente verificando CPF e Data de Nascimento no CSV.
-    Retorna o dicionário do cliente se sucesso, ou None se falha.
-    """
     if not os.path.exists(CLIENTES_CSV):
         return None
 
-    # Normalização simples para garantir match (remove pontos/traços se houver)
     cpf_limpo = cpf_input.replace(".", "").replace("-", "").strip()
     
     with open(CLIENTES_CSV, mode='r', encoding='utf-8') as f:
@@ -32,9 +30,11 @@ def validar_cliente(cpf_input: str, data_nascimento_input: str) -> dict | None:
         for row in reader:
             row_cpf = row['cpf'].replace(".", "").replace("-", "").strip()
             if row_cpf == cpf_limpo and row['data_nascimento'] == data_nascimento_input:
-                return row # Retorna dados completos (score, limite, nome)
+                return row
     return None
 
+
+@tool
 def buscar_dados_cliente(cpf: str) -> dict | None:
     """Busca dados atualizados do cliente pelo CPF."""
     if not os.path.exists(CLIENTES_CSV):
@@ -49,13 +49,12 @@ def buscar_dados_cliente(cpf: str) -> dict | None:
                 return row
     return None
 
+@tool
 def verificar_elegibilidade_aumento(score_atual: int, novo_limite: float) -> bool:
     """
     Verifica se o score permite o novo limite solicitado baseada na tabela score_limite.csv.
-    Fonte: [cite: 35, 36]
     """
     if not os.path.exists(SCORE_LIMITE_CSV):
-        # Fallback se não existir arquivo de regras: aprova se score > 500 (exemplo)
         return int(score_atual) > 500
 
     score_atual = int(score_atual)
@@ -63,18 +62,18 @@ def verificar_elegibilidade_aumento(score_atual: int, novo_limite: float) -> boo
 
     with open(SCORE_LIMITE_CSV, mode='r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
-        # Exemplo esperado de colunas: score_minimo, limite_maximo
         for row in reader:
             if score_atual >= int(row['score_minimo']):
                 if novo_limite <= float(row['limite_maximo']):
                     return True
     return False
 
+
+@tool
 def registrar_solicitacao(cpf: str, limite_atual: float, novo_limite: float, status: str):
     """
     Registra a solicitação de aumento de limite conforme especificado.
     Colunas: cpf_cliente, data_hora_solicitacao, limite_atual, novo_limite_solicitado, status_pedido.
-    Fonte: [cite: 33, 34]
     """
     _garantir_diretorio()
     
@@ -94,6 +93,8 @@ def registrar_solicitacao(cpf: str, limite_atual: float, novo_limite: float, sta
             'status_pedido': status
         })
 
+
+@tool
 def atualizar_score_cliente(cpf: str, novo_score: int):
     """
     Atualiza o score do cliente na base de dados (clientes.csv).
@@ -114,7 +115,7 @@ def atualizar_score_cliente(cpf: str, novo_score: int):
         for row in reader:
             row_cpf = row['cpf'].replace(".", "").replace("-", "").strip()
             if row_cpf == cpf_limpo_target:
-                row['score'] = str(novo_score) # Atualiza o valor
+                row['score'] = str(novo_score)
                 atualizado = True
             writer.writerow(row)
 

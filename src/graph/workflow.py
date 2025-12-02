@@ -4,19 +4,19 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from src.graph.state import AgentState
 from src.agents.triagem import triagem_node
 from src.agents.cambio import cambio_node, tools_cambio
-from src.agents.credito import credit_node
+from src.agents.credito import credit_node_with_tools, tools_credito
 from src.agents.entrevista import interview_node
 
 graph_builder = StateGraph(AgentState)
 
 graph_builder.add_node("triagem", triagem_node)
 graph_builder.add_node("cambio", cambio_node)
-graph_builder.add_node("credito", credit_node)
+graph_builder.add_node("credito", credit_node_with_tools)
 graph_builder.add_node("entrevista", interview_node)
 
-tool_node = ToolNode(tools_cambio)
+all_tools = tools_cambio + tools_credito
+tool_node = ToolNode(all_tools)
 graph_builder.add_node("tools", tool_node)
-
 graph_builder.add_edge(START, "triagem")
 
 def router(state):
@@ -54,6 +54,27 @@ graph_builder.add_conditional_edges(
 )
 
 graph_builder.add_conditional_edges(
+    "credito",
+    tools_condition,
+    {
+        "tools": "tools",
+        END: END
+    }
+)
+
+def post_tool_router(state):
+    messages = state['messages']
+    if len(messages) < 2: return END
+    
+    last_ai_msg = messages[-2]
+    tool_name = messages[-1].name if hasattr(messages[-1], 'name') else ""
+    
+    if tool_name == "cotacao_serpapi":
+        return "cambio"
+    
+    return "credito"
+
+graph_builder.add_conditional_edges(
     "entrevista",
     router,
     {
@@ -63,6 +84,13 @@ graph_builder.add_conditional_edges(
     }
 )
 
-graph_builder.add_edge("tools", "cambio")
+graph_builder.add_conditional_edges(
+    "tools",
+    post_tool_router,
+    {
+        "cambio": "cambio",
+        "credito": "credito"
+    }
+)
 
 app = graph_builder.compile()

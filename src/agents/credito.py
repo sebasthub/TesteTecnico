@@ -10,6 +10,8 @@ from src.tools.csv_handler import (
     registrar_solicitacao
 )
 
+tools_credito = [buscar_dados_cliente, verificar_elegibilidade_aumento, registrar_solicitacao]
+
 
 class UserRequest(BaseModel):
     desired_limit: Optional[float] = Field(
@@ -86,4 +88,24 @@ def credit_node(state: AgentState):
 
     response = llm.invoke([SystemMessage(content=system_context)] + messages)
     
+    return {"messages": [response]}
+
+def credit_node_with_tools(state: AgentState):
+    messages = state['messages']
+    
+    llm_with_tools = llm.bind_tools(tools_credito)
+
+    system_msg = SystemMessage(content="""
+    Você é um Agente de Crédito.
+    Se o usuário pedir aumento de limite, USE a ferramenta 'verificar_elegibilidade_aumento' para verificar se o limite é aprovado e depois registre a solicitação.
+    para registrar a solicitação, USE a ferramenta 'registrar_solicitacao'.
+    Se o usuario perguntar sobre o limite atual, USE a ferramenta 'buscar_dados_cliente' para buscar os dados do cliente.
+    Se o usuario concordar em fazer uma entrevista, atualizar dados financeiros ou tentar melhorar o score, marque 'wants_interview' como True.
+    """)
+    
+    response = llm_with_tools.invoke([system_msg] + messages)
+    
+    if response.tool_calls:
+        response.content = "ultilizando ferramentas, aguarde..."
+
     return {"messages": [response]}
