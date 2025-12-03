@@ -13,6 +13,7 @@ CLIENTES_CSV = os.path.join(DATA_DIR, 'clientes.csv')
 SCORE_LIMITE_CSV = os.path.join(DATA_DIR, 'score_limite.csv')
 SOLICITACOES_CSV = os.path.join(DATA_DIR, 'solicitacoes_aumento_limite.csv')
 
+
 def _garantir_diretorio():
     """Garante que a pasta data/ existe."""
     if not os.path.exists(DATA_DIR):
@@ -48,6 +49,7 @@ def buscar_dados_cliente(cpf: str) -> dict | None:
             if row_cpf == cpf_limpo:
                 return row
     return None
+
 
 @tool
 def verificar_elegibilidade_aumento(score_atual: int, novo_limite: float) -> bool:
@@ -92,6 +94,7 @@ def registrar_solicitacao(cpf: str, limite_atual: float, novo_limite: float, sta
             'novo_limite_solicitado': novo_limite,
             'status_pedido': status
         })
+
 
 @tool
 def processar_aprovacao_limite(cpf: str, novo_status: str) -> str:
@@ -161,10 +164,11 @@ def processar_aprovacao_limite(cpf: str, novo_status: str) -> str:
 
     return msg_retorno
 
+
+@tool
 def atualizar_score_cliente(cpf: str, novo_score: int):
     """
     Atualiza o score do cliente na base de dados (clientes.csv).
-    Fonte: [cite: 50]
     """
     if not os.path.exists(CLIENTES_CSV):
         return False

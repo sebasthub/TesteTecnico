@@ -118,6 +118,7 @@ def credit_node_with_tools(state: AgentState):
     Se o usuario perguntar sobre o limite atual, USE a ferramenta 'buscar_dados_cliente' para buscar os dados do cliente.
     Se for reprovado o usuario tem o direito de uma entrevista de credito feita por outro agente.
     voce NUNCA em HIPOTESE NENHUMA deve falar que sera transferidos para outro agente todos os agentes são voce mesmo.
+    de maneira nenhuma esqueça de gravar a aprovação ou rejeição do limite no final.
     Contexto: {state}
     """)
     
