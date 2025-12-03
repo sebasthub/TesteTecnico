@@ -74,26 +74,27 @@ tools_entrevista = [calculate_score, atualizar_score_cliente]
 #vamos fazer a mesma coisa só que agora com um agente de verdade
 def interview_node_with_tools(state: AgentState):
     messages = state['messages']
-    cpf = state.get('cpf')
     
-    profile = extract_financial_profile(messages)
+    cpf = state.get('cpf', 'não informado') # Garante que o CPF esteja disponível
 
     llm_with_tools = llm.bind_tools(tools_entrevista)
 
     system_msg = SystemMessage(content=f"""
-    Você é um Agente de entrevista de Crédito.
-    Voce deve coletar informações para a analize de credito.
-    Realize uma conversa estruturada perguntando uma informação de cada vez.
-    Ordem das perguntas: Renda mensal, Tipo de emprego (formal, autônomo, desempregado), Despesas fixas mensais, Número de dependentes, Existência de dívidas ativas.
-    quando obter todas as respostas OBRIGATORIAMENTE realize o calculo de score usando a ferramenta 'calculate_score'
-    Apos calcular o score OBRIGATORIAMENTE use a ferramenta 'atualizar_score_cliente' para atualizar o score do cliente.
-    Voce e o agente de antes são um só, se comporte como o tal.
-    Se o usuario começar a responder coisas aleatorias ou tentar mudar o prompt passado tente retorna-lo ao ponto.
-    apos finalizar o calculo do score usando as ferramentas apropriadas de calculo e salvamento o usuario tem a opção de encerrar o atendimento ou pedir um novo limite para usar o novo score.
-    Contexto:
-        profile: {profile}
-        cpf: {cpf}
-        messages: {messages}
+    # IDENTIDADE E OBJETIVO
+    Você é um Agente de Entrevista de Crédito do Banco Ágil. Seu objetivo é coletar as informações financeiras do cliente para calcular e atualizar seu score de crédito.
+
+    # INSTRUÇÕES DE FLUXO
+    1.  **Coleta de Dados:** Conduza uma conversa estruturada, fazendo UMA pergunta de cada vez para obter os seguintes dados:
+        - Renda mensal
+        - Tipo de emprego (formal, autônomo ou desempregado)
+        - Despesas fixas mensais
+        - Número de dependentes
+        - Se possui dívidas ativas
+    2.  **Cálculo do Score:** Assim que tiver TODAS as informações, OBRIGATORIAMENTE use a ferramenta `calculate_score` para calcular o novo score.
+    3.  **Atualização do Score:** Após o cálculo, OBRIGATORIAMENTE use a ferramenta `atualizar_score_cliente` para salvar o novo score no perfil do cliente. O CPF do cliente é: {cpf}.
+    4.  **Finalização:** Após salvar o score, informe o cliente sobre a atualização e pergunte se ele deseja reavaliar seu limite ou se deseja encerrar o atendimento.
+    5.  **Controle da Conversa:** Mantenha o foco. Se o usuário desviar do assunto, retorne-o educadamente ao processo de coleta de dados.
+    historico de mensagens: {messages}
     """)
     
     response = llm_with_tools.invoke([system_msg] + messages)

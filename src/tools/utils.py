@@ -152,9 +152,17 @@ def end_conversation(messages):
 
 
 @tool
-def calculate_score(profile: FinancialProfile) -> int:
+def calculate_score(
+    monthly_income: float,
+    employment_type: Literal["formal", "autônomo", "desempregado"],
+    monthly_expenses: float,
+    dependents: int,
+    has_active_debt: bool
+) -> int:
     """
-    Calcula o score de crédito baseado na fórmula do PDF.
+    Calcula o score de crédito com base no perfil financeiro do usuário.
+    Use esta ferramenta somente após coletar todas as informações necessárias:
+    renda mensal, tipo de emprego, despesas mensais, número de dependentes e se possui dívidas.
     """
     WEIGHT_INCOME = 30
     
@@ -176,18 +184,17 @@ def calculate_score(profile: FinancialProfile) -> int:
         False: 100
     }
 
-    income_score = (profile.monthly_income / (profile.monthly_expenses + 1)) * WEIGHT_INCOME # type: ignore
+    income_score = (monthly_income / (monthly_expenses + 1)) * WEIGHT_INCOME
     
-    emp_score = WEIGHT_EMPLOYMENT.get(profile.employment_type, 0) # type: ignore
+    emp_score = WEIGHT_EMPLOYMENT.get(employment_type, 0)
     
-    deps = profile.dependents
-    if deps >= 3: # type: ignore
+    if dependents >= 3:
         dep_score = WEIGHT_DEPENDENTS["3+"]
     else:
-        dep_score = WEIGHT_DEPENDENTS.get(deps, 30)
+        dep_score = WEIGHT_DEPENDENTS.get(dependents, 30)
         
-    debt_score = WEIGHT_DEBT.get(profile.has_active_debt, 0) # type: ignore
-    
+    debt_score = WEIGHT_DEBT.get(has_active_debt, 0)
+
     final_score = income_score + emp_score + dep_score + debt_score
     
     return max(0, min(1000, int(final_score)))
