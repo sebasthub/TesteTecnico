@@ -32,8 +32,8 @@ with st.sidebar:
     
     if state.get("authenticated"):
         st.write(f"**👤 CPF:** {state.get('cpf')}")
-        st.metric(label="Score Atual", value=state.get("score"))
-        st.metric(label="Limite Atual", value=f"R$ {state.get('limite_atual', 0):.2f}")
+        st.write("nenhum = triagem")
+        st.metric(label="Estado atual", value=state.get("user_intent"))
     
     if st.button("Reiniciar Conversa"):
         del st.session_state["agent_state"]
