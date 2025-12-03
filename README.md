@@ -58,27 +58,26 @@ A persistência é feita através de arquivos CSV localizados na pasta `data/`, 
 
 1.  **Manutenção do Contexto (State Management):**
 
-      * *Desafio:* Garantir que o CPF autenticado na triagem estivesse disponível para o agente de crédito sem pedir novamente.
-      * *Solução:* Uso do `AgentState` do LangGraph para propagar variáveis globais (`cpf`, `authenticated`, `nome`) entre todos os nós do grafo.
+      * *Desafio:* Os agentes não conseguem atualizar o contexto porque eles só retornam a mensagem e mais nada, o que é um problema quando preciso retornar algo para a próxima iteração, como o score, por exemplo.
+      * *Solução:* Comecei a passar o histórico completo para os agentes ficarem "autossuficientes", já que eles vão possuir o retorno falado em mensagens anteriores. Sei que isso consome mais tokens e sofri com isso enquanto fazia os agentes (tá caro ui ui), depois pensei em usar o structured output para pegar a mensagem e algo mais, só que não dá mais tempo de testar então fica só no mundo das ideias mesmo.
 
 2.  **Uso Estrito de Ferramentas (Tool Calling):**
 
       * *Desafio:* Fazer com que o LLM seguisse estritamente as regras de negócio (ex: não inventar cotações ou aprovar crédito sem consultar a tabela).
       * *Solução:* Implementação de *System Prompts* robustos com instruções de "OBRIGATORIAMENTE" e *tool binding* tipado, forçando o modelo a invocar as funções Python para operações críticas.
 
-3.  **Orquestração de Agentes:**
+2.  **Workflow vs Agente:**
 
-      * *Desafio:* Evitar loops infinitos ou roteamentos errados.
-      * *Solução:* Criação de um `router` condicional no `workflow.py` que analisa a `user_intent` ou a saída da última ferramenta executada para decidir o próximo passo.
+      * *Desafio:* Não foi exatamente um desafio, mas pelo que percebi criando esse "Agente", a biblioteca do LangGraph privilegia mais workflows do que agentes de verdade. Por exemplo, o contexto é muito mais fácil de alterar em um workflow do que em um agente. Além disso, todas as IAs para as quais enviei esse PDF criaram workflows que às vezes nem usavam as LLMs para gerar as respostas (o que não atende ao que queremos) e mesmo quando eu dizia que queria um agente de verdade, elas continuavam insistindo em workflows (cheguei a ficar bravo uma hora). Aliás, para ser honesto, precisei usar workflow no agente de triagem porque o utilizo como roteador (e também para demonstrar que sei fazer workflows), mas entendo as diferenças entre um workflow que usa respostas de LLM e um agente que detém autonomia para usar ferramentas e responder o que quiser.
+      * *Solução:* Ignorar totalmente as IAs e pesquisar como fazer agentes autônomos em vídeos. Ainda bem que já tinha assistido vários antes e também utilizei as documentações oficiais.
 
 ## 🛠️ Escolhas Técnicas
 
-  * **Linguagem:** Python 3.10+ (Padrão de mercado para IA/Data Science).
+  * **Linguagem:** Python 3.10+ A vaga pedia dev python logo acho que faz sentido.
   * **Orquestração:** **LangGraph** (Permite fluxos cíclicos e controle de estado granular, superior a cadeias lineares simples).
-  * **LLM:** **OpenAI (GPT)** via `langchain-openai`. Escolhido pela alta capacidade de raciocínio e seguimento de instruções complexas.
-  * **Interface:** **Streamlit**. [cite_start]Permite prototipagem rápida de interfaces de chat[cite: 112].
-  * **Dados:** **CSV**. Simples, auditável e atende aos requisitos do desafio sem overhead de configuração de SQL.
-  * **Ferramentas Externas:** **SerpAPI** para dados reais da web (Câmbio).
+  * **LLM:** **OpenAI (GPT)** via `langchain-openai`. Escolhido pela alta capacidade de raciocínio e seguimento de instruções complexas, e já tinha ultilizado para um projeto pessoal antes.
+  * **Interface:** **Streamlit**. Permite prototipagem rápida de interfaces de chat alem de ter sido recomendada no pdf.
+  * **Ferramentas Externas:** **SerpAPI** api free com o cadastro mais simples que já vi, alem de cumprir todos os requisitos para fazer o agente de cambio.
 
 ## 📚 Tutorial de Execução
 
@@ -166,3 +165,4 @@ Utilize os seguintes dados para testar (presentes em `data/clientes.csv`):
         ├── csv_handler.py  # Manipulação de CSVs
         └── utils.py        # Validadores e Extratores
 ```
+
