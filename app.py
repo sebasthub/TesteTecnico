@@ -44,8 +44,9 @@ for msg in st.session_state["agent_state"]["messages"]:
         with st.chat_message("user"):
             st.write(msg.content)
     elif isinstance(msg, AIMessage):
-        with st.chat_message("assistant"):
-            st.write(msg.content)
+        if msg.content: 
+            with st.chat_message("assistant"):
+                st.write(msg.content)
 
 
 if prompt := st.chat_input("Digite sua mensagem..."):

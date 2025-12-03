@@ -123,8 +123,5 @@ def credit_node_with_tools(state: AgentState):
     """)
     
     response = llm_with_tools.invoke([system_msg] + messages)
-    
-    if response.tool_calls:
-        response.content = "ultilizando ferramentas, aguarde..."
 
     return {"messages": [response]}

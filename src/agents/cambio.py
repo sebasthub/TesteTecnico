@@ -21,8 +21,5 @@ def cambio_node(state: AgentState):
     """)
     
     response = llm_with_tools.invoke([system_msg] + messages)
-    
-    if response.tool_calls:
-        response.content = "🔄 Consultando a ferramenta de câmbio, aguarde..."
 
     return {"messages": [response]}

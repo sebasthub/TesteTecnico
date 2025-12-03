@@ -75,7 +75,7 @@ tools_entrevista = [calculate_score, atualizar_score_cliente]
 def interview_node_with_tools(state: AgentState):
     messages = state['messages']
     
-    cpf = state.get('cpf', 'não informado') # Garante que o CPF esteja disponível
+    cpf = state.get('cpf', 'não informado')
 
     llm_with_tools = llm.bind_tools(tools_entrevista)
 
@@ -98,8 +98,5 @@ def interview_node_with_tools(state: AgentState):
     """)
     
     response = llm_with_tools.invoke([system_msg] + messages)
-    
-    if response.tool_calls:
-        response.content = "ultilizando ferramentas, aguarde..."
 
     return {"messages": [response]}

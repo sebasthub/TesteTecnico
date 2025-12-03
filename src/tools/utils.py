@@ -17,6 +17,7 @@ class UserIntent(BaseModel):
 
 
 # Modelo de dados para extração estruturada das respostas da entrevista
+#estava bugando depois que eu alterei a função para ser chamada por um agente
 class FinancialProfile(BaseModel):
     monthly_income: Optional[float] = Field(description="Renda mensal informada pelo usuário. Ex: 5000.00")
     employment_type: Optional[Literal["formal", "autônomo", "desempregado"]] = Field(description="Tipo de emprego. Mapear para: 'formal' (CLT, funcionário público), 'autônomo' (PJ, freelancer, empresário) ou 'desempregado'.")
@@ -200,7 +201,7 @@ def calculate_score(
     return max(0, min(1000, int(final_score)))
 
 
-#extrai a função de extração de profile do codigo da ia para usar no meu
+#depreciado
 def extract_financial_profile(messages: list[BaseMessage]):
     structured_llm = llm.with_structured_output(FinancialProfile)
     
