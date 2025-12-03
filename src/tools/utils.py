@@ -1,8 +1,9 @@
 import re
 from datetime import datetime
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.messages import SystemMessage, HumanMessage, BaseMessage
 from typing import Optional, Literal
 from pydantic import BaseModel, Field
+from langchain.tools import tool
 
 from src.graph.llm import llm
 
@@ -13,6 +14,15 @@ class UserDate(BaseModel):
 
 class UserIntent(BaseModel):
     user_intent: Literal["finalizado", "credito", "entrevista", "cambio", "nenhum"] = Field(description="A intenção do usuário na conversa")
+
+
+# Modelo de dados para extração estruturada das respostas da entrevista
+class FinancialProfile(BaseModel):
+    monthly_income: Optional[float] = Field(description="Renda mensal informada pelo usuário. Ex: 5000.00")
+    employment_type: Optional[Literal["formal", "autônomo", "desempregado"]] = Field(description="Tipo de emprego. Mapear para: 'formal' (CLT, funcionário público), 'autônomo' (PJ, freelancer, empresário) ou 'desempregado'.")
+    monthly_expenses: Optional[float] = Field(description="Despesas fixas mensais.")
+    dependents: Optional[int] = Field(description="Número de dependentes.")
+    has_active_debt: Optional[bool] = Field(description="Se possui dívidas ativas (Sim/Não).")
 
 
 def validate_date_format(date_str: str) -> str | None:
@@ -139,3 +149,61 @@ def end_conversation(messages):
         HumanMessage(content=messages[-1].content)
     ])
     return response
+
+
+@tool
+def calculate_score(profile: FinancialProfile) -> int:
+    """
+    Calcula o score de crédito baseado na fórmula do PDF.
+    """
+    WEIGHT_INCOME = 30
+    
+    WEIGHT_EMPLOYMENT = {
+        "formal": 300,
+        "autônomo": 200,
+        "desempregado": 0
+    }
+    
+    WEIGHT_DEPENDENTS = {
+        0: 100,
+        1: 80,
+        2: 60,
+        "3+": 30
+    }
+    
+    WEIGHT_DEBT = {
+        True: -100,
+        False: 100
+    }
+
+    income_score = (profile.monthly_income / (profile.monthly_expenses + 1)) * WEIGHT_INCOME # type: ignore
+    
+    emp_score = WEIGHT_EMPLOYMENT.get(profile.employment_type, 0) # type: ignore
+    
+    deps = profile.dependents
+    if deps >= 3: # type: ignore
+        dep_score = WEIGHT_DEPENDENTS["3+"]
+    else:
+        dep_score = WEIGHT_DEPENDENTS.get(deps, 30)
+        
+    debt_score = WEIGHT_DEBT.get(profile.has_active_debt, 0) # type: ignore
+    
+    final_score = income_score + emp_score + dep_score + debt_score
+    
+    return max(0, min(1000, int(final_score)))
+
+
+#extrai a função de extração de profile do codigo da ia para usar no meu
+def extract_financial_profile(messages: list[BaseMessage]):
+    structured_llm = llm.with_structured_output(FinancialProfile)
+    
+    extraction_system = """
+    Você é um especialista em análise de dados financeiros.
+    Analise a conversa e extraia os dados financeiros do usuário para compor o perfil.
+    Se o usuário disse algo como "sou CLT", entenda como "formal".
+    Se disse "não tenho filhos", dependentes é 0.
+    """
+    
+    profile = structured_llm.invoke([SystemMessage(content=extraction_system)] + messages)
+    
+    return profile
