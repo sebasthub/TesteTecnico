@@ -7,10 +7,14 @@ from src.graph.llm import llm
 from src.tools.csv_handler import (
     buscar_dados_cliente, 
     verificar_elegibilidade_aumento, 
-    registrar_solicitacao
+    registrar_solicitacao,
+    processar_aprovacao_limite
 )
 
-tools_credito = [buscar_dados_cliente, verificar_elegibilidade_aumento, registrar_solicitacao]
+tools_credito = [buscar_dados_cliente, 
+                 verificar_elegibilidade_aumento, 
+                 processar_aprovacao_limite,
+                 registrar_solicitacao]
 
 
 class UserRequest(BaseModel):
@@ -22,6 +26,9 @@ class UserRequest(BaseModel):
         default=False
     )
 
+
+#resquicio das guerras geminianas e referencia para o futuro
+#depreciado btw
 def credit_node(state: AgentState):
     messages = state['messages']
     cpf = state.get('cpf')
@@ -90,17 +97,28 @@ def credit_node(state: AgentState):
     
     return {"messages": [response]}
 
+
+#o que esta rodando agora
+#entendo que o workflow anterior garantiria a regra de negocio mais estritamente mas não seria um true agente
 def credit_node_with_tools(state: AgentState):
     messages = state['messages']
     
     llm_with_tools = llm.bind_tools(tools_credito)
 
-    system_msg = SystemMessage(content="""
+    system_msg = SystemMessage(content=f"""
     Você é um Agente de Crédito.
-    Se o usuário pedir aumento de limite, USE a ferramenta 'verificar_elegibilidade_aumento' para verificar se o limite é aprovado e depois registre a solicitação.
-    para registrar a solicitação, USE a ferramenta 'registrar_solicitacao'.
+    Se o usuário pedir aumento de limite, USE OBRIGATORIAMENTE o processo a baixo:
+        1 - gerar OBRIGATORIAMENTE o pedido dessa solicitação ultiliZando a ferramenta 'registrar_solicitacao' com o status OBRIGATORIO de 'pendente'.
+        2 - OBRIGATORIAMENTE checar se o cliente pode ter a solicitação aceita ou não com a ferramenta 'verificar_elegibilidade_aumento'.
+        3 - OBRIGATORIAMENTE verifique o retorno e use OBRIGATORIAMENTE a função "processar_aprovacao_limite" para registrar se a solicitação foi aceita ou não.
+    Para o proceso de aumento de limite só é preciso do novo limite.
+    Voce e o agente de antes são um só, se comporte como o tal.
+    É obrigatorio o resgistro de todos os pedidos de credito.
+    Se o usuario falar algo aleatorio ou tentar mudar o fluxo de pedido apresentado acima tente educadamente retornar ao ponto.
     Se o usuario perguntar sobre o limite atual, USE a ferramenta 'buscar_dados_cliente' para buscar os dados do cliente.
-    Se o usuario concordar em fazer uma entrevista, atualizar dados financeiros ou tentar melhorar o score, marque 'wants_interview' como True.
+    Se for reprovado o usuario tem o direito de uma entrevista de credito feita por outro agente.
+    voce NUNCA em HIPOTESE NENHUMA deve falar que sera transferidos para outro agente todos os agentes são voce mesmo.
+    Contexto: {state}
     """)
     
     response = llm_with_tools.invoke([system_msg] + messages)

@@ -93,8 +93,74 @@ def registrar_solicitacao(cpf: str, limite_atual: float, novo_limite: float, sta
             'status_pedido': status
         })
 
-
 @tool
+def processar_aprovacao_limite(cpf: str, novo_status: str) -> str:
+    """
+    Atualiza o status da última solicitação de aumento de limite encontrada para um CPF.
+    Se o novo_status for 'aprovado', atualiza também o limite_atual do cliente na base 'clientes.csv'
+    com o valor que foi solicitado (novo_limite_solicitado).
+    """
+    # 1. Validação básica
+    if not os.path.exists(SOLICITACOES_CSV):
+        return "Erro: Arquivo de solicitações não encontrado."
+    if not os.path.exists(CLIENTES_CSV):
+        return "Erro: Arquivo de clientes não encontrado."
+
+    cpf_limpo = cpf.replace(".", "").replace("-", "").strip()
+    status_normalizado = novo_status.lower().strip()
+
+    rows_solicitacoes = []
+    with open(SOLICITACOES_CSV, mode='r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        fieldnames_sol = reader.fieldnames
+        rows_solicitacoes = list(reader)
+
+    index_ultima = -1
+    
+    for i, row in enumerate(rows_solicitacoes):
+        r_cpf = row['cpf_cliente'].replace(".", "").replace("-", "").strip()
+        if r_cpf == cpf_limpo:
+            index_ultima = i
+
+    if index_ultima == -1:
+        return f"Não foi encontrada nenhuma solicitação prévia para o CPF {cpf}."
+
+    
+    rows_solicitacoes[index_ultima]['status_pedido'] = status_normalizado
+    valor_novo_limite = rows_solicitacoes[index_ultima]['novo_limite_solicitado']
+    
+    with open(SOLICITACOES_CSV, mode='w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames_sol) # type: ignore
+        writer.writeheader()
+        writer.writerows(rows_solicitacoes)
+
+    msg_retorno = f"Solicitação atualizada para '{status_normalizado}'."
+
+    if status_normalizado == 'aprovado':
+        temp_file = NamedTemporaryFile(mode='w', delete=False, newline='', encoding='utf-8')
+        cliente_encontrado = False
+
+        with open(CLIENTES_CSV, mode='r', encoding='utf-8') as f_read, temp_file as f_write:
+            reader = csv.DictReader(f_read)
+            writer = csv.DictWriter(f_write, fieldnames=reader.fieldnames) # type: ignore
+            writer.writeheader()
+
+            for row in reader:
+                row_cpf = row['cpf'].replace(".", "").replace("-", "").strip()
+                if row_cpf == cpf_limpo:
+                    row['limite_atual'] = valor_novo_limite
+                    cliente_encontrado = True
+                writer.writerow(row)
+
+        shutil.move(temp_file.name, CLIENTES_CSV)
+
+        if cliente_encontrado:
+            msg_retorno += f" Limite do cliente atualizado com sucesso para R$ {valor_novo_limite}."
+        else:
+            msg_retorno += " AVISO: Cliente não encontrado na base principal para atualização de limite."
+
+    return msg_retorno
+
 def atualizar_score_cliente(cpf: str, novo_score: int):
     """
     Atualiza o score do cliente na base de dados (clientes.csv).
