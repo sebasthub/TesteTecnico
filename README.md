@@ -1,83 +1,81 @@
 # 🏦 Banco Ágil - Sistema de Atendimento Inteligente
 
-Este repositório contém a solução para o Desafio Técnico de Agentes de IA. O projeto consiste em um sistema de atendimento bancário automatizado, orquestrado por múltiplos agentes especializados que colaboram para atender solicitações de clientes, desde a triagem inicial até operações complexas de crédito e câmbio.
+Este repositório contém a solução desenvolvida para o **Desafio Técnico de Agentes de IA**. O projeto simula um sistema de atendimento bancário automatizado, orquestrado por múltiplos agentes especializados que colaboram para atender desde triagens iniciais até operações financeiras complexas.
 
 ## 📋 Visão Geral
 
-O sistema simula o atendimento digital do **Banco Ágil**. Ele utiliza uma arquitetura baseada em grafos (LangGraph) para gerenciar o estado da conversa e rotear o cliente entre diferentes especialistas (agentes) de forma transparente. O objetivo é oferecer uma experiência fluida onde o cliente sente que está conversando com uma única entidade capaz de resolver diversos problemas.
+O sistema utiliza uma arquitetura baseada em grafos (**LangGraph**) para gerenciar o estado da conversa e rotear o cliente entre diferentes especialistas (agentes) de forma transparente. O foco da solução é a **manutenção de contexto** e a **autonomia dos agentes**, permitindo que o cliente sinta que conversa com uma única entidade capaz de resolver diversos problemas.
 
-[cite_start]A interface foi construída com **Streamlit**, permitindo uma interação via chat em tempo real, com um painel lateral para monitoramento do estado interno da IA (debug).
+A interface foi construída com **Streamlit**, permitindo interação via chat em tempo real e visualização do estado interno da IA (debug) para fins de avaliação.
 
 ## 🏗️ Arquitetura do Sistema
 
-A solução adota uma arquitetura multi-agente orquestrada pelo **LangGraph**. O estado da aplicação (`AgentState`) é compartilhado entre os nós do grafo, preservando o contexto (histórico de mensagens, autenticação, dados do cliente) durante toda a sessão.
+A solução adota uma arquitetura multi-agente onde o estado da aplicação (`AgentState`) é compartilhado entre os nós do grafo. Isso preserva o histórico de mensagens, status de autenticação e dados do cliente durante toda a sessão.
 
-### Fluxo de Dados e Agentes
+### Fluxo de Agentes
 
-1.  **Agente de Triagem (Porta de Entrada):**
-
-      * Responsável pela saudação e autenticação.
-      * Coleta CPF e Data de Nascimento e valida contra o arquivo `data/clientes.csv`.
-      * Gerencia tentativas de login (máximo de 3).
-      * Identifica a intenção do usuário e roteia para o agente específico.
+1.  **Agente de Triagem (Roteador):**
+    * Atua como *Front Desk*.
+    * Realiza a autenticação (Validação de CPF e Data de Nascimento contra `data/clientes.csv`).
+    * Gerencia lógica de tentativas (máximo de 3 falhas).
+    * Identifica a intenção do usuário e transfere o estado para o especialista adequado.
 
 2.  **Agente de Crédito:**
-
-      * Consulta o limite atual e score do cliente.
-      * Processa solicitações de aumento de limite.
-      * Registra a solicitação com o status de pendente. 
-      * Verifica a elegibilidade consultando `data/score_limite.csv`.
-      * Altera a solicitação apos serem aprovadas ou rejeitadas em `data/solicitacoes_aumento_limite.csv`.
-      * Em caso de recusa, sugere o redirecionamento para o Agente de Entrevista.
+    * Consulta limite e score atuais.
+    * Processa solicitações de aumento de limite verificando a tabela de elegibilidade (`data/score_limite.csv`).
+    * Registra formalmente as solicitações em `data/solicitacoes_aumento_limite.csv`.
+    * Em caso de recusa, sugere proativamente o redirecionamento para o **Agente de Entrevista**.
 
 3.  **Agente de Entrevista:**
-
-      * Realiza uma entrevista estruturada para coletar dados financeiros (renda, emprego, despesas, etc.).
-      * Utiliza ferramentas para calcular o novo score baseado em pesos predefinidos.
-      * Atualiza o score do cliente na base `clientes.csv` e retorna o fluxo para o Agente de Crédito.
+    * Conduz uma entrevista estruturada para coleta de dados financeiros (Renda, Emprego, Despesas, Dívidas).
+    * Executa o cálculo do novo score baseado em pesos predefinidos (Regra de Negócio).
+    * Atualiza a base de dados e retorna o cliente ao fluxo de crédito.
 
 4.  **Agente de Câmbio:**
+    * Realiza cotações de moedas em tempo real integrando com a API externa **SerpAPI** (Google Search).
 
-      * Realiza cotações de moedas em tempo real utilizando a API **SerpAPI** (Google Search).
+---
 
-### Manipulação de Dados
+## ✨ Funcionalidades
 
-A persistência é feita através de arquivos CSV localizados na pasta `data/`, manipulados por ferramentas Python customizadas (`src/tools/csv_handler.py`).
+* ✅ **Autenticação Segura:** Validação de credenciais com controle de tentativas.
+* ✅ **Persistência em Arquivo:** Leitura e escrita dinâmica em CSVs (simulando DB).
+* ✅ **Lógica de Negócio Real:** Aprovação de crédito baseada em regras estritas (Score vs. Limite).
+* ✅ **Recálculo de Score:** Coleta interativa de dados e atualização cadastral.
+* ✅ **Roteamento Inteligente:** Transição fluida entre agentes sem perda de contexto.
+* ✅ **Tool Calling:** Uso estrito de ferramentas para operações críticas (cálculos e consultas).
 
-## ✨ Funcionalidades Implementadas
-
-  * ✅ **Autenticação Segura:** Validação de CPF e Data de Nascimento com limite de tentativas.
-  * ✅ **Consulta de Limite e Score:** Leitura dinâmica dos dados do cliente.
-  * ✅ **Solicitação de Aumento de Limite:** Análise automática baseada em regras de negócio (Tabela de Score vs. Limite).
-  * ✅ **Recálculo de Score (Entrevista):** Coleta interativa de dados e atualização cadastral em tempo real.
-  * ✅ **Cotação de Moedas:** Integração com API externa para valores atualizados.
-  * ✅ **Roteamento Inteligente:** O sistema entende o contexto e muda de agente sem que o usuário precise reiniciar a conversa.
-  * ✅ **Interface de Chat:** UI amigável com Streamlit incluindo visualização de debug (estado da sessão).
+---
 
 ## 🚀 Desafios e Soluções
 
-1.  **Manutenção do Contexto (State Management):**
+Durante o desenvolvimento, enfrentei desafios arquiteturais interessantes que moldaram a solução final:
 
-      * *Desafio:* Os agentes não conseguem atualizar o contexto porque eles só retornam a mensagem e mais nada, o que é um problema quando preciso retornar algo para a próxima iteração, como o score, por exemplo.
-      * *Solução:* Comecei a passar o histórico completo para os agentes ficarem "autossuficientes", já que eles vão possuir o retorno falado em mensagens anteriores. Sei que isso consome mais tokens e sofri com isso enquanto fazia os agentes (tá caro ui ui), depois pensei em usar o structured output para pegar a mensagem e algo mais, só que não dá mais tempo de testar então fica só no mundo das ideias mesmo.
+### 1. Gestão de Contexto e Custo (Tokens)
+**O Desafio:** Garantir que agentes especializados tivessem acesso às informações coletadas anteriormente (como o resultado de uma entrevista) sem alucinar dados.
+**A Solução:** Optei por passar o histórico completo de mensagens no `AgentState`. Embora isso aumente o consumo de tokens (custo), garante que o agente tenha "memória" de curto prazo perfeita. *Nota: Para uma versão 2.0, planejo implementar Structured Outputs para extrair apenas o essencial e reduzir o payload.*
 
-2.  **Uso Estrito de Ferramentas (Tool Calling):**
+### 2. Workflow vs. Agentes Autônomos
+**O Desafio:** A maioria das implementações de exemplo do LangGraph foca em *Workflows* determinísticos (cadeias rígidas). O desafio exigia *Agentes* com autonomia para decidir quando chamar uma ferramenta ou encerrar o papo.
+**A Solução:** Desenvolvi uma arquitetura híbrida. O **Agente de Triagem** atua mais próximo de um workflow (roteador lógico), enquanto os demais (Crédito, Entrevista, Câmbio) são agentes autônomos que decidem seus próximos passos (chamar tool ou responder ao usuário) com base no prompt do sistema.
 
-      * *Desafio:* Fazer com que o LLM seguisse estritamente as regras de negócio (ex: não inventar cotações ou aprovar crédito sem consultar a tabela).
-      * *Solução:* Implementação de *System Prompts* robustos com instruções de "OBRIGATORIAMENTE" e *tool binding* tipado, forçando o modelo a invocar as funções Python para operações críticas.
+### 3. Confiabilidade das Ferramentas (Tool Calling)
+**O Desafio:** Impedir que a LLM inventasse dados (como cotações de moeda ou aprovações de crédito) em vez de consultar as bases de dados.
+**A Solução:** Refinamento dos *System Prompts* com instruções de "OBRIGATORIEDADE" e tipagem forte no *tool binding*, forçando o modelo a invocar as funções Python para qualquer operação que envolvesse dados sensíveis.
 
-2.  **Workflow vs Agente:**
-
-      * *Desafio:* Não foi exatamente um desafio, mas pelo que percebi criando esse "Agente", a biblioteca do LangGraph privilegia mais workflows do que agentes de verdade. Por exemplo, o contexto é muito mais fácil de alterar em um workflow do que em um agente. Além disso, todas as IAs para as quais enviei esse PDF criaram workflows que às vezes nem usavam as LLMs para gerar as respostas (o que não atende ao que queremos) e mesmo quando eu dizia que queria um agente de verdade, elas continuavam insistindo em workflows (cheguei a ficar bravo uma hora). Aliás, para ser honesto, precisei usar workflow no agente de triagem porque o utilizo como roteador (e também para demonstrar que sei fazer workflows), mas entendo as diferenças entre um workflow que usa respostas de LLM e um agente que detém autonomia para usar ferramentas e responder o que quiser.
-      * *Solução:* Ignorar totalmente as IAs e pesquisar como fazer agentes autônomos em vídeos. Ainda bem que já tinha assistido vários antes e também utilizei as documentações oficiais.
+---
 
 ## 🛠️ Escolhas Técnicas
 
-  * **Linguagem:** Python 3.10+ A vaga pedia dev python logo acho que faz sentido.
-  * **Orquestração:** **LangGraph** (Permite fluxos cíclicos e controle de estado granular, superior a cadeias lineares simples).
-  * **LLM:** **OpenAI (GPT)** via `langchain-openai`. Escolhido pela alta capacidade de raciocínio e seguimento de instruções complexas, e já tinha ultilizado para um projeto pessoal antes.
-  * **Interface:** **Streamlit**. Permite prototipagem rápida de interfaces de chat alem de ter sido recomendada no pdf.
-  * **Ferramentas Externas:** **SerpAPI** api free com o cadastro mais simples que já vi, alem de cumprir todos os requisitos para fazer o agente de cambio.
+A escolha da stack foi baseada em pesquisa comparativa e adequação ao problema de orquestração complexa:
+
+* **Linguagem:** Python 3.10+ (Padrão da indústria para IA).
+* **Orquestração (LangGraph):** Escolhido em detrimento do CrewAI.
+    * *Por que?* Enquanto o CrewAI foca muito na colaboração "social" entre agentes, o **LangGraph** oferece controle granular sobre o fluxo de estado (State Management) e suporta grafos cíclicos, essenciais para o loop de "Entrevista -> Atualiza Score -> Reavalia Crédito".
+* **LLM (OpenAI GPT):** Escolhida pela confiabilidade no *Function Calling* e familiaridade com a API, garantindo robustez na execução das ferramentas.
+* **Interface (Streamlit):** Permitiu criar uma UI funcional e rápida para validação do conceito, com a vantagem de facilitar a exibição de logs de debug lateralmente.
+
+---
 
 ## 📚 Tutorial de Execução
 
@@ -166,3 +164,4 @@ Utilize os seguintes dados para testar (presentes em `data/clientes.csv`):
         └── utils.py        # Validadores e Extratores
 ```
 
+# se chegou ate aqui saiba que eu tinha outro readme mais humano mas ele não era nem um pouco proficional, sim preferi proficionalismo a auto expreção e não me arrependo
