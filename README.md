@@ -164,4 +164,4 @@ Utilize os seguintes dados para testar (presentes em `data/clientes.csv`):
         └── utils.py        # Validadores e Extratores
 ```
 
-# se chegou ate aqui saiba que eu tinha outro readme mais humano mas ele não era nem um pouco proficional, sim preferi proficionalismo a auto expreção e não me arrependo
+### se chegou ate aqui saiba que eu tinha outro readme mais humano mas ele não era nem um pouco proficional, sim preferi proficionalismo a auto expreção e não me arrependo
